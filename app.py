@@ -5,7 +5,7 @@ import os
 import ast
 
 # 1. CONFIGURAÇÃO
-st.set_page_config(page_title="Brik PRO 10.3", layout="wide", page_icon="💎")
+st.set_page_config(page_title="Brik PRO 10.4", layout="wide", page_icon="💎")
 
 # 2. ARQUIVOS E PASTAS
 ARQUIVO_ESTOQUE = "estoque.csv"
@@ -13,7 +13,7 @@ ARQUIVO_VENDAS = "vendas.csv"
 PASTA_FOTOS = "fotos_produtos"
 if not os.path.exists(PASTA_FOTOS): os.makedirs(PASTA_FOTOS)
 
-# 3. CSS
+# 3. CSS CUSTOMIZADO
 st.markdown("""
     <style>
     .stApp { background-color: #0F1116 !important; }
@@ -21,8 +21,6 @@ st.markdown("""
     div[data-testid="stMetric"] { background-color: #1C1F26 !important; border-left: 5px solid #D4AF37 !important; border-radius: 10px !important; padding: 15px !important; }
     section[data-testid="stSidebar"] { background-color: #16191E !important; }
     .stButton>button { background-color: #D4AF37 !important; color: #0F1116 !important; font-weight: bold !important; width: 100%; border-radius: 8px !important; }
-    /* Ajuste para inputs ficarem limpos */
-    input { background-color: #262730 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -52,7 +50,7 @@ def salvar():
     if not v_save.empty: v_save['data_venda'] = v_save['data_venda'].dt.strftime('%d/%m/%Y %H:%M')
     v_save.to_csv(ARQUIVO_VENDAS, index=False)
 
-# 5. SIDEBAR COM CADASTRO "LIMPO"
+# 5. SIDEBAR
 meses_nome = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 with st.sidebar:
     st.title("🏆 Andrade Tech")
@@ -68,14 +66,14 @@ with st.sidebar:
         n = st.text_input("Nome do Produto", placeholder="Ex: iPhone 13")
         d_in = st.date_input("Data de Entrada", format="DD/MM/YYYY")
         
-        # Campos com valor inicial None mostram o placeholder vazio
+        # Correção solicitada: Inicia vazio com placeholder 0.00
         q = st.number_input("Quantidade", min_value=1, step=1, value=None, placeholder="0")
         c = st.number_input("Custo Unitário (R$)", min_value=0.0, step=0.01, value=None, placeholder="0.00")
         v = st.number_input("Venda Sugerida (R$)", min_value=0.0, step=0.01, value=None, placeholder="0.00")
         
         st.write("➕ **Gastos Extras**")
         col1, col2 = st.columns(2)
-        dg = col1.text_input("Tipo", placeholder="Ex: Frete", key="tg_tipo")
+        dg = col1.text_input("Tipo", placeholder="Frete", key="tg_tipo")
         vg = col2.number_input("Valor", min_value=0.0, value=None, placeholder="0.00", key="tg_val")
         
         if st.button("Adicionar Gasto"):
@@ -104,18 +102,17 @@ with st.sidebar:
                 st.session_state.estoque = pd.concat([st.session_state.estoque, novo], ignore_index=True)
                 st.session_state.temp_gastos = []
                 salvar()
-                st.success("Cadastrado!")
+                st.success("Cadastrado com sucesso!")
                 st.rerun()
-            else:
-                st.error("Preencha Nome, Qtd, Custo e Venda!")
 
-# 6. FUNÇÃO DE CARD
+# 6. FUNÇÃO DE CARD (CORRIGIDA PARA STREAMLIT 2026)
 def exibir_card(item, venda_ativa=True):
     with st.container():
         c1, c2 = st.columns([1, 2])
         with c1:
             if item['foto'] != "Sem Foto" and os.path.exists(item['foto']):
-                st.image(item['foto'], use_container_width=True)
+                # Atualizado: width='stretch' substitui use_container_width=True
+                st.image(item['foto'], width='stretch')
             else: st.write("🖼️ S/ Foto")
         with c2:
             st.subheader(item['produto'])
@@ -137,14 +134,13 @@ def exibir_card(item, venda_ativa=True):
 
 # 7. TELAS
 if menu == "📊 Dashboard":
-    st.header(f"Resultados: {filtro_mes_nome}")
+    st.header(f"📊 Resultados: {filtro_mes_nome}")
     
     dv = st.session_state.vendas.copy()
     if mes_num and not dv.empty:
         dv = dv[dv['data_venda'].dt.month == mes_num]
     
     if not dv.empty:
-        # Forçamos a conversão para garantir que a soma não resulte em 0 por erro de tipo
         faturamento = (dv['qtd_vendida'].astype(float) * dv['valor_unitario'].astype(float)).sum()
         lucro_total = dv['lucro'].astype(float).sum()
         qtd_total = dv['qtd_vendida'].sum()
@@ -154,6 +150,10 @@ if menu == "📊 Dashboard":
     st.metric("Faturamento", f"R$ {faturamento:,.2f}")
     st.metric("Lucro Líquido", f"R$ {lucro_total:,.2f}")
     st.metric("Itens Vendidos", int(qtd_total))
+    
+    if not dv.empty:
+        # Atualizado: width='stretch' substitui use_container_width=True no dataframe
+        st.dataframe(dv[['produto_nome', 'lucro']], width='stretch')
 
 elif menu == "⚡ Vendas":
     df_e = st.session_state.estoque.copy()
