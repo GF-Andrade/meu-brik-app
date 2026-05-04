@@ -1,0 +1,7 @@
+data_venda,produto_id,produto_nome,qtd_vendida,valor_unitario_real,lucro,status,observacao,id_venda,valor_unitario
+21/04/2026 23:51,1776823645.0,IPHONE 12,1,1500.0,480.0,Concluída,,1776826268.0,0.0
+03/05/2026 23:51,,IPHONE 13,1,,400.0,,,,2000.0
+04/05/2026 00:07,,IPHONE 13,1,,400.0,,,,2000.0
+04/05/2026 00:08,,IPHONE 13,1,,400.0,,,,2000.0
+04/05/2026 00:08,,IPHONE 13,1,,400.0,,,,2000.0
+04/05/2026 00:41,,IPHONE 13,1,,400.0,,,,2000.0

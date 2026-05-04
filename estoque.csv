@@ -1,0 +1,8 @@
+id,produto,qtd,custo_compra,gastos_extras,venda_sugerida,foto,data_entrada
+1776826251,PS4 SLIM 500GB,0,1000.0,20.0,1350.0,fotos_produtos\1776826251_PS4-Console-wDS4.jpg,21/04/2026
+1777861209,GABRIEL,0,10.0,[],10.0,fotos_produtos\1777861209_15.jpg,03/05/2026
+1777863049,IPHONE 13,0,1600.0,[],2000.0,fotos_produtos\1777863049_15.jpg,02/04/2026
+1777864039,IPHONE 13,0,1600.0,"[{'tipo': 'uber', 'valor': 20.0}]",2000.0,fotos_produtos\1777864039_15.jpg,04/05/2026
+1777864042,IPHONE 13,0,1600.0,[],2000.0,fotos_produtos\1777864042_15.jpg,04/05/2026
+1777864052,IPHONE 13,0,1600.0,[],2000.0,fotos_produtos\1777864052_15.jpg,04/05/2026
+1777866094,IPHONE 13,0,1600.0,"[{'tipo': 'uber', 'valor': 20.0}, {'tipo': 'uber', 'valor': 20.0}]",2000.0,fotos_produtos\1777866094_15.jpg,02/04/2026
