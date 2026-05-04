@@ -2,230 +2,155 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import os
+import io
 
-# 1. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(
-    page_title="Brik PRO",
-    layout="wide",
-    page_icon="📦",
-    initial_sidebar_state="collapsed"
-)
+# 1. CONFIGURAÇÃO
+st.set_page_config(page_title="Brik PRO 9.2", layout="wide", page_icon="💎")
 
-# 2. CONFIGURAÇÃO DE ARQUIVOS
+# 2. ARQUIVOS E PASTAS
 ARQUIVO_ESTOQUE = "estoque.csv"
 ARQUIVO_VENDAS = "vendas.csv"
 PASTA_FOTOS = "fotos_produtos"
 if not os.path.exists(PASTA_FOTOS): os.makedirs(PASTA_FOTOS)
 
-# 3. ESTILIZAÇÃO CSS (CORREÇÃO DE VISIBILIDADE)
+# 3. CSS DARK & GOLD
 st.markdown("""
     <style>
-    /* FUNDO DA PÁGINA */
-    .stApp { background-color: #F0F2F6 !important; }
-    
-    /* BOTÃO DO MENU (FIXO E AZUL ESCURO) */
-    button[data-testid="sidebar-button"] {
-        background-color: #002D5B !important;
-        color: #FFFFFF !important;
-        border-radius: 12px !important;
-        width: 55px !important;
-        height: 55px !important;
-        position: fixed !important;
-        top: 10px !important;
-        left: 10px !important;
-        z-index: 9999 !important;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
-    }
-
-    /* SIDEBAR (ESCURA PARA CONTRASTE) */
-    section[data-testid="stSidebar"] {
-        background-color: #111B21 !important;
-        border-right: 1px solid #202C33;
-    }
-    section[data-testid="stSidebar"] * { color: white !important; }
-
-    /* CARDS DO DASHBOARD (BRANCOS COM TEXTO PRETO) */
+    .stApp { background-color: #0F1116 !important; }
+    h1, h2, h3, p, span, label, .stMarkdown { color: #E0E0E0 !important; }
     div[data-testid="stMetric"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #DEE2E6 !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
-        box-shadow: 0px 4px 6px rgba(0,0,0,0.05) !important;
-    }
-    div[data-testid="stMetricLabel"] > div { 
-        color: #495057 !important; 
-        font-weight: bold !important;
-        font-size: 16px !important;
-    }
-    div[data-testid="stMetricValue"] > div { 
-        color: #000000 !important; 
-        font-weight: 800 !important;
-    }
-
-    /* TÍTULOS E TEXTOS DA PÁGINA */
-    h1, h2, h3, h4, span, label, p { 
-        color: #000000 !important; 
-        opacity: 1 !important;
-    }
-
-    /* BOTÕES (CORES QUE SE DESTACAM NO FUNDO CLARO) */
-    .stButton > button {
-        background-color: #0056B3 !important;
-        color: white !important;
+        background-color: #1C1F26 !important; 
+        border-left: 5px solid #D4AF37 !important;
         border-radius: 10px !important;
-        height: 50px !important;
-        font-weight: bold !important;
-        border: none !important;
-    }
-    
-    /* BOTÃO DE EXCLUIR */
-    div.stButton > button[key^="del_"] {
-        background-color: #C82333 !important;
-    }
-
-    /* CONTAINERS DE PRODUTOS */
-    [data-testid="stVerticalBlock"] > div > div[style*="border"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #CED4DA !important;
-        border-radius: 15px !important;
         padding: 20px !important;
     }
-
-    .assinatura { 
-        font-size: 14px; color: #6C757D !important; text-align: center; margin-top: 40px; 
-    }
+    section[data-testid="stSidebar"] { background-color: #16191E !important; }
+    .stButton>button { background-color: #D4AF37 !important; color: #0F1116 !important; font-weight: bold !important; border-radius: 8px !important; }
+    /* Estilo para campos de input */
+    .stNumberInput input { background-color: #1C1F26 !important; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 4. GESTÃO DE DADOS
+# 4. CARREGAMENTO E SALVAMENTO
 def carregar_dados():
-    if os.path.exists(ARQUIVO_ESTOQUE):
-        st.session_state.estoque = pd.read_csv(ARQUIVO_ESTOQUE)
-    else:
-        st.session_state.estoque = pd.DataFrame(columns=["id", "produto", "qtd", "custo_compra", "gastos_extras", "venda_sugerida", "foto", "data_entrada"])
+    estoque = pd.read_csv(ARQUIVO_ESTOQUE) if os.path.exists(ARQUIVO_ESTOQUE) else pd.DataFrame(columns=["id", "produto", "qtd", "custo_compra", "venda_sugerida", "foto", "data_entrada"])
+    vendas = pd.read_csv(ARQUIVO_VENDAS) if os.path.exists(ARQUIVO_VENDAS) else pd.DataFrame(columns=["data_venda", "produto_nome", "qtd_vendida", "valor_unitario", "lucro"])
     
-    if os.path.exists(ARQUIVO_VENDAS):
-        df_v = pd.read_csv(ARQUIVO_VENDAS)
-        if "id_venda" not in df_v.columns:
-            df_v["id_venda"] = [int(datetime.now().timestamp()) + i for i in range(len(df_v))]
-        st.session_state.vendas = df_v
-    else:
-        st.session_state.vendas = pd.DataFrame(columns=["id_venda", "data_venda", "produto_id", "produto_nome", "qtd_vendida", "valor_unitario_real", "lucro_da_venda", "status"])
+    if 'data_entrada' in estoque.columns:
+        estoque['data_entrada'] = estoque['data_entrada'].fillna(datetime.now().strftime('%d/%m/%Y')).astype(str)
+    
+    if not vendas.empty:
+        vendas['data_venda'] = pd.to_datetime(vendas['data_venda'], dayfirst=True, errors='coerce')
+        vendas = vendas.dropna(subset=['data_venda'])
+    
+    return estoque, vendas
 
-if 'estoque' not in st.session_state: carregar_dados()
+st.session_state.estoque, st.session_state.vendas = carregar_dados()
 
 def salvar():
     st.session_state.estoque.to_csv(ARQUIVO_ESTOQUE, index=False)
-    st.session_state.vendas.to_csv(ARQUIVO_VENDAS, index=False)
+    df_v_save = st.session_state.vendas.copy()
+    if not df_v_save.empty:
+        df_v_save['data_venda'] = df_v_save['data_venda'].dt.strftime('%d/%m/%Y %H:%M')
+    df_v_save.to_csv(ARQUIVO_VENDAS, index=False)
 
-# 5. CONFIGURAÇÃO DE TEMPO
-LISTA_MESES = ["Janeiro/2026", "Fevereiro/2026", "Março/2026", "Abril/2026", "Maio/2026", "Junho/2026", "Julho/2026", "Agosto/2026", "Setembro/2026", "Outubro/2026", "Novembro/2026", "Dezembro/2026"]
-MAPA_MESES = {m: f"{i+1:02d}/2026" for i, m in enumerate(LISTA_MESES)}
+# 5. SIDEBAR
+meses_nome = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"]
 
-# 6. MENU LATERAL
 with st.sidebar:
-    st.markdown("## 🏢 Andrade Tech")
-    menu = st.radio("Selecione:", ["📊 Dashboard", "⚡ Produtos", "📜 Vendas"])
+    st.title("🏆 Andrade Tech")
+    filtro_mes_nome = st.selectbox("📅 Mês de Referência:", ["Todos os Meses"] + meses_nome)
+    mes_num = meses_nome.index(filtro_mes_nome) + 1 if filtro_mes_nome != "Todos os Meses" else None
+    
     st.divider()
+    menu = st.radio("Navegação:", ["📊 Dashboard", "⚡ Vendas", "📜 Esgotados"])
     
-    with st.expander("➕ Adicionar Novo"):
-        with st.form("cad_form", clear_on_submit=True):
-            n = st.text_input("Nome").upper()
-            q = st.number_input("Estoque", min_value=0, value=1)
-            c = st.number_input("Custo Unit (R$)", min_value=0.0)
-            e = st.number_input("Extras (R$)", min_value=0.0)
-            v = st.number_input("Preço Venda (R$)", min_value=0.0)
-            ft = st.file_uploader("Foto", type=['jpg','png','jpeg'])
-            if st.form_submit_button("Salvar"):
-                if n:
-                    id_p = int(datetime.now().timestamp())
-                    path = "Sem Foto"
-                    if ft:
-                        path = os.path.join(PASTA_FOTOS, f"{id_p}_{ft.name}")
-                        with open(path, "wb") as f: f.write(ft.getbuffer())
-                    nova = {"id": id_p, "produto": n, "qtd": q, "custo_compra": c, "gastos_extras": e, "venda_sugerida": v, "foto": path, "data_entrada": datetime.now().strftime("%d/%m/%Y")}
-                    st.session_state.estoque = pd.concat([st.session_state.estoque, pd.DataFrame([nova])], ignore_index=True)
-                    salvar(); st.rerun()
-    st.markdown('<p style="color:white !important;">Brik Gabriel Andrade</p>', unsafe_allow_html=True)
-
-# 7. TELAS
-if menu == "📊 Dashboard":
-    st.title("📊 Desempenho Financeiro")
-    mes_txt = st.selectbox("Escolha o Mês:", LISTA_MESES, index=datetime.now().month - 1)
-    mes_f = MAPA_MESES[mes_txt]
-    
-    df_v_mes = st.session_state.vendas.copy()
-    if not df_v_mes.empty:
-        df_v_mes = df_v_mes[pd.to_datetime(df_v_mes['data_venda'], dayfirst=True).dt.strftime('%m/%Y') == mes_f]
-
-    # BLOCO 1: REALIZADO
-    st.markdown("### ✅ Realizado no Mês")
-    c1, c2 = st.columns(2)
-    c1.metric("Faturamento Mensal", f"R$ {df_v_mes['qtd_vendida'].mul(df_v_mes['valor_unitario_real']).sum():,.2f}" if not df_v_mes.empty else "R$ 0,00")
-    c2.metric("Lucro Mensal", f"R$ {df_v_mes['lucro_da_venda'].sum():,.2f}" if not df_v_mes.empty else "R$ 0,00")
-
     st.divider()
-    
-    # BLOCO 2: PROJEÇÃO
-    st.markdown("### 🔮 Projeção de Estoque")
-    df_e = st.session_state.estoque[st.session_state.estoque['qtd'] > 0].copy()
-    c3, c4, c5 = st.columns(3)
-    c3.metric("Total Investido", f"R$ {(df_e['qtd'] * (df_e['custo_compra'] + df_e['gastos_extras'])).sum():,.2f}")
-    c4.metric("Previsão Retorno", f"R$ {(df_e['qtd'] * df_e['venda_sugerida']).sum():,.2f}")
-    c5.metric("Lucro Pendente", f"R$ {((df_e['qtd'] * df_e['venda_sugerida']).sum() - (df_e['qtd'] * (df_e['custo_compra'] + df_e['gastos_extras'])).sum()):,.2f}")
-
-elif menu == "⚡ Produtos":
-    st.title("⚡ Gestão de Produtos")
-    busca = st.text_input("🔍 Buscar Produto...").upper()
-    df_res = st.session_state.estoque.copy()
-    if busca: df_res = df_res[df_res['produto'].str.contains(busca, case=False)]
-
-    for i, r in df_res.iterrows():
-        custo_tot = r['custo_compra'] + r['gastos_extras']
-        with st.container():
-            col_img, col_info = st.columns([1, 2])
-            with col_img:
-                if r['foto'] != "Sem Foto" and os.path.exists(r['foto']): st.image(r['foto'], use_container_width=True)
-                else: st.write("📸 Sem Foto")
-            with col_info:
-                st.subheader(r['produto'])
-                st.write(f"📦 Unidades: **{int(r['qtd'])}** | 💵 Preço: **R$ {r['venda_sugerida']:.2f}**")
+    with st.form("cad_form", clear_on_submit=True):
+        st.subheader("🆕 Novo Produto")
+        n = st.text_input("Nome").upper()
+        d_in = st.date_input("Data de Entrada", value=datetime.now(), format="DD/MM/YYYY")
+        
+        # AJUSTE AQUI: value=None remove o 0.00 inicial travado
+        q = st.number_input("Quantidade Inicial", min_value=1, value=None, placeholder="Digite a qtd...")
+        c = st.number_input("Custo Unitário (R$)", min_value=0.0, step=0.01, value=None, placeholder="0,00")
+        v = st.number_input("Preço de Venda (R$)", min_value=0.0, step=0.01, value=None, placeholder="0,00")
+        
+        ft = st.file_uploader("Foto do Produto", type=['png', 'jpg', 'jpeg'])
+        
+        if st.form_submit_button("CADASTRAR"):
+            if n and q and c and v: # Garante que campos não estão vazios
+                id_p = int(datetime.now().timestamp())
+                path = os.path.join(PASTA_FOTOS, f"{id_p}_{ft.name}") if ft else "Sem Foto"
+                if ft:
+                    with open(path, "wb") as f: f.write(ft.getbuffer())
                 
-                c_v, c_e = st.columns(2)
-                with c_v:
-                    with st.expander("💸 Venda Rápida"):
-                        qv = st.number_input("Qtd", 1, max_value=max(1, int(r['qtd'])), key=f"v_{r['id']}")
-                        if st.button("Confirmar", key=f"bt_v_{r['id']}"):
-                            st.session_state.estoque.loc[st.session_state.estoque['id'] == r['id'], 'qtd'] -= qv
-                            id_v = int(datetime.now().timestamp())
-                            nova_v = {"id_venda": id_v, "data_venda": datetime.now().strftime("%d/%m/%Y %H:%M"), "produto_id": r['id'], "produto_nome": r['produto'], "qtd_vendida": qv, "valor_unitario_real": r['venda_sugerida'], "lucro_da_venda": (r['venda_sugerida'] - custo_tot) * qv, "status": "Concluída"}
-                            st.session_state.vendas = pd.concat([st.session_state.vendas, pd.DataFrame([nova_v])], ignore_index=True)
-                            salvar(); st.rerun()
-                with c_e:
-                    with st.expander("⚙️ Opções"):
-                        ed_n = st.text_input("Nome", r['produto'], key=f"en_{r['id']}")
-                        ed_q = st.number_input("Estoque", value=int(r['qtd']), key=f"eq_{r['id']}")
-                        ed_s = st.number_input("Preço", value=float(r['venda_sugerida']), key=f"es_{r['id']}")
-                        if st.button("💾 Salvar", key=f"esv_{r['id']}"):
-                            idx = st.session_state.estoque[st.session_state.estoque['id'] == r['id']].index
-                            st.session_state.estoque.loc[idx, ['produto', 'qtd', 'venda_sugerida']] = [ed_n.upper(), ed_q, ed_s]
-                            salvar(); st.rerun()
-                        if st.button("🗑️ Excluir TUDO", key=f"del_total_{r['id']}"):
-                            st.session_state.estoque = st.session_state.estoque[st.session_state.estoque['id'] != r['id']]
-                            st.session_state.vendas = st.session_state.vendas[st.session_state.vendas['produto_id'] != r['id']]
-                            salvar(); st.rerun()
-        st.divider()
+                novo = pd.DataFrame([{"id": id_p, "produto": n, "qtd": q, "custo_compra": c, "venda_sugerida": v, "foto": path, "data_entrada": d_in.strftime('%d/%m/%Y')}])
+                st.session_state.estoque = pd.concat([st.session_state.estoque, novo], ignore_index=True)
+                salvar(); st.rerun()
+            else:
+                st.error("Preencha todos os campos antes de cadastrar!")
 
-elif menu == "📜 Vendas":
-    st.title("📜 Histórico")
-    if not st.session_state.vendas.empty:
-        for i, row in st.session_state.vendas.iloc[::-1].iterrows():
-            with st.container():
-                st.write(f"**{row['produto_nome']}**")
-                st.write(f"📅 {row['data_venda']} | {int(row['qtd_vendida'])} un | Lucro: **R$ {row['lucro_da_venda']:.2f}**")
-                if st.button(f"🗑️ Estornar", key=f"del_v_h_{row['id_venda']}"):
-                    st.session_state.vendas = st.session_state.vendas[st.session_state.vendas['id_venda'] != row['id_venda']]
+# 6. FILTRAGEM E EXIBIÇÃO (IGUAL À VERSÃO ANTERIOR)
+df_vendas_f = st.session_state.vendas.copy()
+df_estoque_f = st.session_state.estoque.copy()
+
+if mes_num:
+    if not df_vendas_f.empty:
+        df_vendas_f = df_vendas_f[df_vendas_f['data_venda'].dt.month == mes_num]
+    def extrair_mes_br(data_str):
+        try: return int(str(data_str).split('/')[1])
+        except: return 0
+    df_estoque_f['mes_entrada'] = df_estoque_f['data_entrada'].apply(extrair_mes_br)
+    df_estoque_f = df_estoque_f[df_estoque_f['mes_entrada'] == mes_num]
+
+def exibir_card_produto(item, modo_venda=True):
+    with st.container():
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            if item['foto'] != "Sem Foto" and os.path.exists(item['foto']):
+                st.image(item['foto'], width=130)
+            else: st.info("Sem Foto")
+        with col2:
+            st.subheader(item['produto'])
+            st.write(f"📅 **Entrada:** {item['data_entrada']}")
+            if modo_venda:
+                st.write(f"📦 **Disponível:** {int(item['qtd'])} | 💰 **Preço:** R$ {item['venda_sugerida']:.2f}")
+                with st.expander("💸 Realizar Venda"):
+                    qv = st.number_input("Qtd", 1, max_value=int(item['qtd']), key=f"v_{item['id']}")
+                    if st.button("Confirmar", key=f"btn_v_{item['id']}"):
+                        st.session_state.estoque.loc[st.session_state.estoque['id'] == item['id'], 'qtd'] -= qv
+                        lv = (item['venda_sugerida'] - item['custo_compra']) * qv
+                        nv = pd.DataFrame([{"data_venda": datetime.now(), "produto_nome": item['produto'], "qtd_vendida": qv, "valor_unitario": item['venda_sugerida'], "lucro": lv}])
+                        st.session_state.vendas = pd.concat([st.session_state.vendas, nv], ignore_index=True)
+                        salvar(); st.rerun()
+            else:
+                st.write("❌ **STATUS: ESGOTADO**")
+                if st.button("🗑️ Remover Registro", key=f"del_{item['id']}"):
+                    st.session_state.estoque = st.session_state.estoque[st.session_state.estoque['id'] != item['id']]
                     salvar(); st.rerun()
-            st.divider()
-    else:
-        st.info("Nenhuma venda registrada.")
+    st.divider()
+
+if menu == "📊 Dashboard":
+    st.header(f"📊 Relatório - {filtro_mes_nome}")
+    if not df_vendas_f.empty:
+        fat = (df_vendas_f['qtd_vendida'] * df_vendas_f['valor_unitario']).sum()
+        luc = df_vendas_f['lucro'].sum()
+        c1, c2, c3 = st.columns(3)
+        c1.metric("FATURAMENTO", f"R$ {fat:,.2f}")
+        c2.metric("LUCRO", f"R$ {luc:,.2f}")
+        c3.metric("VENDAS", int(df_vendas_f['qtd_vendida'].sum()))
+        df_view = df_vendas_f.copy()
+        df_view['data_venda'] = df_view['data_venda'].dt.strftime('%d/%m/%Y %H:%M')
+        st.dataframe(df_view[['data_venda', 'produto_nome', 'qtd_vendida', 'lucro']], use_container_width=True)
+    else: st.info("Nenhuma movimentação neste mês.")
+
+elif menu == "⚡ Vendas":
+    st.header(f"⚡ Estoque Disponível - {filtro_mes_nome}")
+    dispo = df_estoque_f[df_estoque_f['qtd'] > 0]
+    for _, item in dispo.iterrows(): exibir_card_produto(item, modo_venda=True)
+
+elif menu == "📜 Esgotados":
+    st.header(f"📜 Histórico de Esgotados - {filtro_mes_nome}")
+    esgotados = df_estoque_f[df_estoque_f['qtd'] <= 0]
+    for _, item in esgotados.iterrows(): exibir_card_produto(item, modo_venda=False)
