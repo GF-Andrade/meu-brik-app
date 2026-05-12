@@ -1,3 +1,0 @@
-id,produto,qtd,custo_compra,venda_sugerida,foto,data_entrada,gastos_extras
-1777866734,IPHONE 13,1,1600.0,2000.0,fotos_produtos\1777866734_images.jpg,04/05/2026,"[{'tipo': 'uber', 'valor': 20.0}]"
-1777866763,IPHONE 13,0,1600.0,2000.0,fotos_produtos\1777866763_images.jpg,04/05/2026,[]
